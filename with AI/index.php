@@ -21,7 +21,7 @@
             --toggle-fg: #fff;
             --excuse-bg: rgba(255, 255, 255, 0.05);
         }
-        
+
 
         body.light-theme {
             --bg-color: #F0F0F0;
@@ -53,7 +53,7 @@
             will-change: transform; /* Performance optimization */
         }
         
-        /* Glassmorphism container */
+        
         .glass-container {
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
