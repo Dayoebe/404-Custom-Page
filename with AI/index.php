@@ -21,6 +21,7 @@
             --toggle-fg: #fff;
             --excuse-bg: rgba(255, 255, 255, 0.05);
         }
+        
 
         body.light-theme {
             --bg-color: #F0F0F0;
