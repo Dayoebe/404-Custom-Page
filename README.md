@@ -71,8 +71,8 @@ I'm always open to collaboration, suggestions, and feedback! You can:
 
 - **🌐 Website:** [https://www.wirelesscs.com](https://www.wirelesscs.com)
 - **🐙 GitHub:** [@Dayoebe](https://github.com/Dayoebe)
-- **📷 Instagram:** [@wirelesscs](https://instagram.com/wirelesscs)
-- **📧 Email:** mail@wirelesscs.com
+- **📷 Instagram:** [@wirelesscs](https://instagram.com/oyetoke.ebenezer)
+- **📧 Email:** oyetoke.ebenezer@gmail.com
 - **📞 Phone:** +234 903 003 6438
 
 ---
