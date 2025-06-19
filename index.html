@@ -17,7 +17,8 @@
             'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             'fade-in': 'fadeIn 0.8s ease-out forwards',
             'tada': 'tada 0.8s ease-out',
-            'bounce-in': 'bounceIn 0.5s ease-out'
+            'bounce-in': 'bounceIn 0.5s ease-out',
+            'shake': 'shake 0.5s ease-out'
           },
           keyframes: {
             float: {
@@ -40,6 +41,11 @@
               '50%': { transform: 'scale(1.05)', opacity: '1' },
               '70%': { transform: 'scale(0.95)' },
               '100%': { transform: 'scale(1)', opacity: '1' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '25%': { transform: 'translateX(-10px)' },
+              '75%': { transform: 'translateX(10px)' }
             }
           },
           fontFamily: {
@@ -95,85 +101,55 @@
         container.appendChild(particle);
       }
     },
-    matchingGame: {
-      icons: ['fa-robot', 'fa-rocket', 'fa-gamepad', 'fa-paint-brush'],
-      selectedIcon: null,
-      matches: 0,
-      moves: 0,
-      gameComplete: false,
-      cards: [],
+    numberGame: {
+      targetNumber: 0,
+      userGuess: '',
+      attempts: 0,
+      gameStatus: 'waiting', // waiting, playing, won, lost
+      message: '',
+      maxAttempts: 7,
+      guessHistory: [],
       init() {
         this.resetGame();
       },
       resetGame() {
-        // Create two copies of each icon and shuffle
-        let cards = [...this.icons, ...this.icons];
-        cards = this.shuffle(cards);
-        
-        this.cards = cards.map((icon, index) => ({
-          id: index,
-          icon: icon,
-          matched: false,
-          flipped: false
-        }));
-        
-        this.selectedIcon = null;
-        this.matches = 0;
-        this.moves = 0;
-        this.gameComplete = false;
+        this.targetNumber = Math.floor(Math.random() * 100) + 1;
+        this.userGuess = '';
+        this.attempts = 0;
+        this.gameStatus = 'playing';
+        this.message = 'Guess a number between 1 and 100!';
+        this.guessHistory = [];
       },
-      shuffle(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
+      submitGuess() {
+        if (this.gameStatus !== 'playing') return;
+        
+        const guess = parseInt(this.userGuess);
+        
+        if (isNaN(guess) || guess < 1 || guess > 100) {
+          this.message = 'Please enter a valid number between 1-100!';
+          return;
         }
-        return array;
-      },
-      flipCard(card) {
-        if (card.matched || card.flipped || this.gameComplete) return;
         
-        card.flipped = true;
-        this.moves++;
+        this.attempts++;
+        this.guessHistory.push(guess);
         
-        if (this.selectedIcon === null) {
-          // First card flipped
-          this.selectedIcon = card;
+        if (guess === this.targetNumber) {
+          this.gameStatus = 'won';
+          this.message = `🎉 Congratulations! You found the number ${this.targetNumber} in ${this.attempts} attempts!`;
+        } else if (this.attempts >= this.maxAttempts) {
+          this.gameStatus = 'lost';
+          this.message = `Game over! The number was ${this.targetNumber}. Better luck next time!`;
+        } else if (guess < this.targetNumber) {
+          this.message = `🔻 Too low! Try a higher number. (${this.maxAttempts - this.attempts} attempts left)`;
         } else {
-          // Second card flipped
-          if (this.selectedIcon.icon === card.icon) {
-            // Match found
-            setTimeout(() => {
-              card.matched = true;
-              this.selectedIcon.matched = true;
-              this.selectedIcon = null;
-              this.matches++;
-              
-              if (this.matches === this.icons.length) {
-                this.gameComplete = true;
-              }
-            }, 500);
-          } else {
-            // No match
-            setTimeout(() => {
-              card.flipped = false;
-              this.selectedIcon.flipped = false;
-              this.selectedIcon = null;
-            }, 1000);
-          }
+          this.message = `🔺 Too high! Try a lower number. (${this.maxAttempts - this.attempts} attempts left)`;
         }
-      },
-      iconName(icon) {
-        const names = {
-          'fa-robot': 'AI',
-          'fa-rocket': 'Rocket',
-          'fa-gamepad': 'Game',
-          'fa-paint-brush': 'Design'
-        };
-        return names[icon];
+        
+        this.userGuess = '';
       }
     }
   }"
-  x-init="createParticles(); matchingGame.init(); $watch('particles', (value) => createParticles())"
+  x-init="createParticles(); numberGame.init(); $watch('particles', (value) => createParticles())"
   @resize.window="createParticles"
 >
   <!-- Background particles -->
@@ -271,63 +247,103 @@
       </a>
     </div>
 
-    <!-- Matching Game Section -->
+    <!-- Number Guessing Game Section -->
     <div class="glass mt-12 w-full max-w-4xl p-8 rounded-2xl shadow-xl animate-fade-in">
-      <h2 class="font-display text-3xl text-center mb-6 text-gradient bg-gradient-to-r from-indigo-400 to-pink-400">Icon Matching Game</h2>
-      <p class="text-center text-gray-400 mb-6">Match the icons to their names! A fun and easy game with 404-themed icons.</p>
+      <h2 class="font-display text-3xl text-center mb-6 text-gradient bg-gradient-to-r from-indigo-400 to-pink-400">Number Guessing Game</h2>
       
-      <div class="flex justify-between items-center mb-6">
-        <div class="text-lg text-indigo-300">Moves: <span class="font-bold" x-text="matchingGame.moves"></span></div>
-        <div class="text-lg text-pink-300">Matches: <span class="font-bold" x-text="matchingGame.matches"></span>/4</div>
+      <div class="flex flex-col items-center">
+        <!-- Game Status -->
+        <div class="w-full mb-6 text-center">
+          <div 
+            class="text-xl font-medium mb-2 px-4 py-3 rounded-lg"
+            :class="{
+              'bg-emerald-900/30 text-emerald-300 border border-emerald-500/30': numberGame.gameStatus === 'won',
+              'bg-amber-900/30 text-amber-300 border border-amber-500/30': numberGame.gameStatus === 'lost',
+              'bg-indigo-900/30 text-indigo-300 border border-indigo-500/30': numberGame.gameStatus === 'playing' || numberGame.gameStatus === 'waiting'
+            }"
+            x-text="numberGame.message"
+          ></div>
+          <div class="text-gray-400 mt-2">
+            Attempts: <span class="font-semibold" x-text="numberGame.attempts"></span> / 
+            <span x-text="numberGame.maxAttempts"></span>
+          </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div class="w-full max-w-md flex gap-2 mb-8">
+          <input 
+            type="number" 
+            min="1" 
+            max="100" 
+            x-model="numberGame.userGuess"
+            @keyup.enter="numberGame.submitGuess()"
+            placeholder="Enter a number (1-100)"
+            class="flex-1 px-4 py-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-indigo-500 focus:outline-none"
+            :disabled="numberGame.gameStatus === 'won' || numberGame.gameStatus === 'lost'"
+          >
+          <button 
+            @click="numberGame.submitGuess()"
+            class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 rounded-lg font-medium hover:from-indigo-700 hover:to-pink-700 transition-all"
+            :disabled="numberGame.gameStatus === 'won' || numberGame.gameStatus === 'lost'"
+          >
+            Guess
+          </button>
+        </div>
+        
+        <!-- Guess History -->
+        <div class="w-full max-w-md mb-8">
+          <h3 class="text-lg font-semibold text-gray-300 mb-3">Your Guesses:</h3>
+          <div class="flex flex-wrap gap-2">
+            <template x-for="(guess, index) in numberGame.guessHistory" :key="index">
+              <div 
+                class="px-3 py-2 rounded-lg text-center"
+                :class="{
+                  'bg-emerald-900/50 text-emerald-100': guess === numberGame.targetNumber,
+                  'bg-blue-900/50 text-blue-100': guess < numberGame.targetNumber,
+                  'bg-pink-900/50 text-pink-100': guess > numberGame.targetNumber
+                }"
+                x-text="guess"
+              ></div>
+            </template>
+            <div 
+              class="px-3 py-2 rounded-lg text-center text-gray-500" 
+              x-show="numberGame.guessHistory.length === 0"
+            >
+              No guesses yet
+            </div>
+          </div>
+        </div>
+        
+        <!-- Reset Button -->
         <button 
-          @click="matchingGame.resetGame()" 
-          class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-pink-600 rounded-full font-medium hover:from-indigo-700 hover:to-pink-700 transition-all"
+          @click="numberGame.resetGame()" 
+          class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 rounded-lg font-medium hover:from-indigo-700 hover:to-pink-700 transition-all"
         >
           New Game
         </button>
       </div>
       
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        <template x-for="icon in matchingGame.icons" :key="icon">
-          <div 
-            class="glass p-4 rounded-lg flex flex-col items-center cursor-pointer transition-all duration-300 hover:bg-indigo-900/20"
-            :class="{
-              'bg-emerald-900/30 border-emerald-500/50': matchingGame.cards.find(c => c.icon === icon)?.matched,
-              'animate-tada': matchingGame.cards.find(c => c.icon === icon)?.matched,
-              'border-indigo-500/30': !matchingGame.cards.find(c => c.icon === icon)?.matched
-            }"
-            @click="matchingGame.flipCard(matchingGame.cards.find(c => c.icon === icon))"
-          >
-            <div 
-              class="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-900 to-pink-900 flex items-center justify-center mb-3"
-              :class="{'animate-bounce-in': matchingGame.cards.find(c => c.icon === icon)?.flipped || matchingGame.cards.find(c => c.icon === icon)?.matched}"
-            >
-              <i :class="'fas ' + icon + ' text-2xl text-white'"></i>
-            </div>
-            <div 
-              class="text-center text-sm font-medium text-gray-300"
-              x-text="matchingGame.iconName(icon)"
-            ></div>
-          </div>
-        </template>
-      </div>
-      
-      <div 
-        x-show="matchingGame.gameComplete"
-        class="text-center py-6 glass rounded-lg border border-emerald-500/30"
-      >
-        <h3 class="text-2xl font-bold text-emerald-300 mb-4">Congratulations! You Won!</h3>
-        <p class="text-gray-400 mb-6">You completed the game in <span class="font-bold" x-text="matchingGame.moves"></span> moves.</p>
-        <button 
-          @click="matchingGame.resetGame()" 
-          class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-indigo-600 rounded-full font-medium hover:from-emerald-700 hover:to-indigo-700 transition-all"
-        >
-          Play Again
-        </button>
-      </div>
-      
-      <div class="mt-6 text-center text-sm text-gray-500">
-        <p>Click on an icon to match it with its name. Find all 4 matches to win!</p>
+      <!-- Game Instructions -->
+      <div class="mt-8 pt-6 border-t border-gray-800">
+        <h3 class="text-lg font-semibold text-gray-300 mb-3">How to Play:</h3>
+        <ul class="text-gray-400 space-y-2">
+          <li class="flex items-start gap-2">
+            <span class="text-indigo-400">1.</span>
+            <span>I've picked a random number between 1 and 100.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="text-indigo-400">2.</span>
+            <span>You have 7 attempts to guess the number.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="text-indigo-400">3.</span>
+            <span>After each guess, I'll tell you if your guess is too high or too low.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="text-indigo-400">4.</span>
+            <span>Try to find the number in as few guesses as possible!</span>
+          </li>
+        </ul>
       </div>
     </div>
 
